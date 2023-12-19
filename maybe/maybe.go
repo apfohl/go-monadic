@@ -1,49 +1,45 @@
 package maybe
 
-import (
-	"github.com/apfohl/go-monadic/global"
-)
-
-type Maybe[T, U any] interface {
-	Match(just global.Func[T, U], nothing global.FuncZero[U]) U
-	Map(mapper global.Func[T, U]) Maybe[U, T]
-	Bind(mapper global.Func[T, Maybe[U, T]]) Maybe[U, T]
+type Maybe[T any] interface {
+	Match(just func(T) any, nothing func() any) any
+	Map(mapper func(T) any) Maybe[any]
+	Bind(mapper func(T) Maybe[any]) Maybe[any]
 }
 
-func Return[T, U any](value T) Maybe[T, U] {
-	return Just[T, U]{instance: value}
-}
-
-func nothing[T, U any]() Maybe[T, U] {
-	return Nothing[T, U]{}
-}
-
-type Just[T, _ any] struct {
+type Just[T any] struct {
 	instance T
 }
 
-func (maybe Just[T, TResult]) Match(just global.Func[T, TResult], _ global.FuncZero[TResult]) TResult {
+func Return[T any](value T) Maybe[T] {
+	return Just[T]{instance: value}
+}
+
+func (maybe Just[T]) Match(just func(T) any, _ func() any) any {
 	return just(maybe.instance)
 }
 
-func (maybe Just[T, U]) Map(mapper global.Func[T, U]) Maybe[U, T] {
-	return Return[U, T](mapper(maybe.instance))
+func (maybe Just[T]) Map(mapper func(T) any) Maybe[any] {
+	return Return[any](mapper(maybe.instance))
 }
 
-func (maybe Just[T, U]) Bind(mapper global.Func[T, Maybe[U, T]]) Maybe[U, T] {
+func (maybe Just[T]) Bind(mapper func(T) Maybe[any]) Maybe[any] {
 	return mapper(maybe.instance)
 }
 
-type Nothing[T, _ any] struct{}
+type Nothing[T any] struct{}
 
-func (maybe Nothing[T, TResult]) Match(_ global.Func[T, TResult], nothing global.FuncZero[TResult]) TResult {
+func nothing[T any]() Maybe[T] {
+	return Nothing[T]{}
+}
+
+func (maybe Nothing[T]) Match(_ func(T) any, nothing func() any) any {
 	return nothing()
 }
 
-func (maybe Nothing[T, U]) Map(_ global.Func[T, U]) Maybe[U, T] {
-	return nothing[U, T]()
+func (maybe Nothing[T]) Map(_ func(T) any) Maybe[any] {
+	return nothing[any]()
 }
 
-func (maybe Nothing[T, U]) Bind(_ global.Func[T, Maybe[U, T]]) Maybe[U, T] {
-	return nothing[U, T]()
+func (maybe Nothing[T]) Bind(_ func(T) Maybe[any]) Maybe[any] {
+	return nothing[any]()
 }
